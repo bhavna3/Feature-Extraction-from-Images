@@ -1,95 +1,141 @@
-# Image-Analysis
+# ML Challenge Problem Statement
 
-## Overview
+## Feature Extraction from Images
 
-The script processes image data, extracts relevant features, and uses a Random Forest Regressor to make predictions about product characteristics.
+In this hackathon, the goal is to create a machine learning model that extracts entity values from images. This capability is crucial in fields like healthcare, e-commerce, and content moderation, where precise product information is vital. As digital marketplaces expand, many products lack detailed textual descriptions, making it essential to obtain key details directly from images. These images provide important information such as weight, volume, voltage, wattage, dimensions, and many more, which are critical for digital stores.
 
-## Dependencies
+### Data Description: 
 
-- Python 3.x
-- pandas
-- numpy
-- requests
-- Pillow (PIL)
-- matplotlib
-- scikit-learn
-- tqdm
+The dataset consists of the following columns: 
 
-## Data
+1. **index:** An unique identifier (ID) for the data sample
+2. **image_link**: Public URL where the product image is available for download. Example link - https://m.media-amazon.com/images/I/71XfHPR36-L.jpg
+    To download images use `download_images` function from `src/utils.py`. See sample code in `src/test.ipynb`.
+3. **group_id**: Category code of the product
+4. **entity_name:** Product entity name. For eg: “item_weight” 
+5. **entity_value:** Product entity value. For eg: “34 gram” 
+    Note: For test.csv, you will not see the column `entity_value` as it is the target variable.
 
-The project uses two main datasets:
-1. `train.csv`: Contains training data with image links, group IDs, entity names, and entity values.
-2. `test.csv`: Contains test data for prediction.
+### Output Format:
 
-## Key Components
+The output file should be a csv with 2 columns:
 
-### 1. Data Loading and Preprocessing
+1. **index:** The unique identifier (ID) of the data sample. Note the index should match the test record index.
+2. **prediction:** A string which should have the following format: “x unit” where x is a float number in standard formatting and unit is one of the allowed units (allowed units are mentioned in the Appendix). The two values should be concatenated and have a space between them. For eg: “2 gram”, “12.5 centimetre”, “2.56 ounce” are valid. Few invalid cases: “2 gms”, “60 ounce/1.7 kilogram”, “2.2e2 kilogram” etc.
+    Note: Make sure to output a prediction for all indices. If no value is found in the image for any test sample, return empty string, i.e, `“”`. If you have less/more number of output samples in the output file as compared to test.csv, your output won’t be evaluated. 
 
-- Loads training and test data from CSV files.
-- Extracts numeric values and units from the `entity_value` column using regex.
-- Normalizes units to base units (e.g., grams, centimeters) for consistency.
+### File Descriptions:
 
-### 2. Image Processing
+*source files*
 
-- `load_image_from_url(url)`: Loads an image from a given URL.
-- Displays sample images with their corresponding entity values for visual inspection.
+1. **src/sanity.py**: Sanity checker to ensure that the final output file passes all formatting checks. Note: the script will not check if less/more number of predictions are present compared to the test file. See sample code in `src/test.ipynb` 
+2. **src/utils.py**: Contains helper functions for downloading images from the image_link.
+3. **src/constants.py:** Contains the allowed units for each entity type.
+4. **sample_code.py:** We also provided a sample dummy code that can generate an output file in the given format. Usage of this file is optional. 
 
-### 3. Feature Engineering
+*Dataset files*
 
-- Encodes categorical `entity_name` using `LabelEncoder`.
-- Creates features from `group_id` and encoded `entity_name`.
+1. **dataset/train.csv**: Training file with labels (`entity_value`).
+2. **dataset/test.csv**: Test file without output labels (`entity_value`). Generate predictions using your model/solution on this file's data and format the output file to match sample_test_out.csv (Refer the above section "Output Format")
+3. **dataset/sample_test.csv**: Sample test input file.
+4. **dataset/sample_test_out.csv**: Sample outputs for sample_test.csv. The output for test.csv must be formatted in the exact same way. Note: The predictions in the file might not be correct
 
-### 4. Model Training
+### Constraints
 
-- Uses `RandomForestRegressor` to predict normalized values.
-- Splits data into training and validation sets.
-- Trains the model and calculates Mean Squared Error on the validation set.
+1. You will be provided with a sample output file and a sanity checker file. Format your output to match the sample output file exactly and pass it through the sanity checker to ensure its validity. Note: If the file does not pass through the sanity checker, it will not be evaluated. You should recieve a message like `Parsing successfull for file: ...csv` if the output file is correctly formatted.
 
-### 5. Prediction
+2. You are given the list of allowed units in constants.py and also in Appendix. Your outputs must be in these units. Predictions using any other units will be considered invalid during validation.
 
-- Applies the trained model to the test dataset.
-- Generates predictions and saves them to 'test_out.csv'.
+### Evaluation Criteria
 
-## Usage Instructions
+Submissions will be evaluated based on F1 score, which are standard measures of prediction accuracy for classification and extraction problems.
 
-1. Ensure all dependencies are installed:
-   ```
-   pip install pandas numpy requests pillow matplotlib scikit-learn tqdm
-   ```
+Let GT = Ground truth value for a sample and OUT be output prediction from the model for a sample. Then we classify the predictions into one of the 4 classes with the following logic: 
 
-2. Prepare your data:
-   - Place `train.csv` and `test.csv` in a known directory.
-   - Update file paths in the script to point to your CSV files.
+1. *True Positives* - If OUT != `""` and GT != `""` and OUT == GT
+2. *False Positives* - If OUT != `""` and GT != `""` and OUT != GT
+3. *False Positives* - If OUT != `""` and GT == `""`
+4. *False Negatives* - If OUT == `""` and GT != `""`
+5. *True Negatives* - If OUT == `""` and GT == `""` 
 
-3. Run the script:
-   ```
-   python amazon_ml.py
-   ```
+Then, F1 score = 2*Precision*Recall/(Precision + Recall) where:
 
-4. Check the output:
-   - The script will generate 'test_out.csv' containing predictions for the test dataset.
-   - Review the console output for any errors or the validation Mean Squared Error.
+1. Precision = True Positives/(True Positives + False Positives)
+2. Recall = True Positives/(True Positives + False Negatives)
 
-## Code Structure
+### Submission File
 
-1. Library imports
-2. Data loading
-3. Data preprocessing and feature extraction
-4. Image loading and visualization functions
-5. Unit normalization
-6. Feature encoding
-7. Model training and validation
-8. Prediction on test data
-9. Output generation
+Upload a test_out.csv file in the Portal with the exact same formatting as sample_test_out.csv
 
-## Potential Improvements
+### Appendix
 
-1. Implement more advanced image processing techniques to extract features directly from images.
-2. Experiment with different machine learning models or ensemble methods.
-3. Add more robust error handling and logging.
-4. Implement cross-validation for more reliable model evaluation.
-5. Optimize the code for larger datasets, possibly using parallel processing.
-
-## Conclusion
-
-This script provides a foundation for predicting product attributes based on image data and metadata. It demonstrates the basic workflow of a machine learning project, from data preprocessing to model training and prediction. Users can build upon this base to create more sophisticated product analysis tools for e-commerce applications.
+```
+entity_unit_map = {
+  "width": {
+    "centimetre",
+    "foot",
+    "millimetre",
+    "metre",
+    "inch",
+    "yard"
+  },
+  "depth": {
+    "centimetre",
+    "foot",
+    "millimetre",
+    "metre",
+    "inch",
+    "yard"
+  },
+  "height": {
+    "centimetre",
+    "foot",
+    "millimetre",
+    "metre",
+    "inch",
+    "yard"
+  },
+  "item_weight": {
+    "milligram",
+    "kilogram",
+    "microgram",
+    "gram",
+    "ounce",
+    "ton",
+    "pound"
+  },
+  "maximum_weight_recommendation": {
+    "milligram",
+    "kilogram",
+    "microgram",
+    "gram",
+    "ounce",
+    "ton",
+    "pound"
+  },
+  "voltage": {
+    "millivolt",
+    "kilovolt",
+    "volt"
+  },
+  "wattage": {
+    "kilowatt",
+    "watt"
+  },
+  "item_volume": {
+    "cubic foot",
+    "microlitre",
+    "cup",
+    "fluid ounce",
+    "centilitre",
+    "imperial gallon",
+    "pint",
+    "decilitre",
+    "litre",
+    "millilitre",
+    "quart",
+    "cubic inch",
+    "gallon"
+  }
+}
+```
